@@ -4,34 +4,28 @@ from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
 import time
 import re #정규표현식
+# naverNews_url = "https://news.naver.com/main/list.naver?mode=LS2D&sid2=258&sid1=101&mid=shm&date=20230206&page=1" #1 ~ 51
+# chrome_options = webdriver.ChromeOptions()
+#
+# wd = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+# wd.get(naverNews_url)
+# # time.sleep(1)
+# html = wd.page_source
+# soup = BeautifulSoup(html,'html.parser')
+# # articles = soup.select('li ')
+# articles = soup.select('li > dl')
+# print(articles)
 
-naverNews_url = "https://news.naver.com/main/list.naver?mode=LS2D&sid2=258&sid1=101&mid=shm&date=20230206&page=1"
-chrome_options = webdriver.ChromeOptions()
 
 
-wd = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
-wd.get(naverNews_url)
-time.sleep(1)
-html = wd.page_source
-soup = BeautifulSoup(html,'html.parser')
-# tag_tbody = soup.find("tbody")
-# print(tag_tbody)
-# stores = soup.select('li')
-# stores = soup.select('li > dl > dt')
-# stores = soup.select('li ')
-stores = soup.select('li > dl')
-# stores = soup.select('li > dl > dt')
-
-# print(stores)
-
-def getArticleScript(article_script_url):
+def getArticleScript(article_script_url)->str: #기사 본문을 리턴하는 메서드
     wd.get(article_script_url)
     time.sleep(1)
     html = wd.page_source
     soup = BeautifulSoup(html, 'html.parser')
     tmp = soup.select("div#dic_area")
     # print('tmp :', "type :",type(tmp),tmp)
-    tag = re.compile('<.*?>')
+    tag = re.compile('<.*?>') #<>태그를 모두 없앤다.
     script = ""
     for i in tmp:
         i = str(i)
@@ -42,10 +36,10 @@ def getArticleScript(article_script_url):
         # print(new_txt)
         # script += txt.strip() + " "
         # print("본문 :",len(txt),type(txt),txt,"끝끝끝")
-    # print("★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★")
 
 
-def getArticleDate(article_script_url):
+
+def getArticleDate(article_script_url):#기사 작성 날짜 반환
     wd.get(article_script_url)
     html = wd.page_source
     soup = BeautifulSoup(html, 'html.parser')
@@ -58,15 +52,7 @@ def getArticleDate(article_script_url):
 
 
 
-
-
-
-
-
-
-
-
-def getTitleMethod(article):
+def getTitleMethod(article):#기사제목 반환, 가끔씩 이름이 두 개 들어갈때가 있음.
     ansStr = ""
     tag = re.compile('<.*?>')
     for i in article:
@@ -78,35 +64,59 @@ def getTitleMethod(article):
     return ansStr
 
 
-for index,article in enumerate(stores):
-    # print(index, article)
-
-    # print("!!기사제목과 링크!! : ",article.find_all('a'))
-    # print("!!기사제목과 링크!! : ",article.find_all('a'))
-
-    # print('article : ',article)
-    # method(article.select('a'))
-    raw_html = article.find_all('a')
-    title = getTitleMethod(raw_html)
 
 
 
-    #완료
-    print("제목 : ",title)
-    print("!!링크!! : ",article.find('a')['href'])
-    print("언론사 : ",article.find_all(attrs={'class': re.compile('^writing')})[0].string )
-    # print("몇 분전 : ",article.find_all(attrs={'class': re.compile('^date is_new')})[0].string )
+arr = []
+for page in range(1,52):
+    naverNews_url = "https://news.naver.com/main/list.naver?mode=LS2D&sid2=258&sid1=101&mid=shm&date=20230206&page={0}".format(page)
+    print(naverNews_url)
+    chrome_options = webdriver.ChromeOptions()
+    wd = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+    wd.get(naverNews_url)
+    html = wd.page_source
+    soup = BeautifulSoup(html,'html.parser')
+    articles = soup.select('li > dl')
 
-    article_script_url = article.find('a')['href']
-    article_script = getArticleScript(article_script_url)
-    print('본론 :',article_script)
-    script_date = getArticleDate(article_script_url)
-    print("작성 날짜 :",script_date)
+    for index,article in enumerate(articles):
+        raw_html = article.find_all('a')
+        title = getTitleMethod(raw_html)
+
+        #완료
+        # print("제목 : ",title)
+        article_script_url = article.find('a')['href']
+        article_script = getArticleScript(article_script_url)
+        # print('본론 :',article_script)
+        # print("!!링크!! : ",article.find('a')['href'])
+        script_date = getArticleDate(article_script_url)
+        # print("언론사 : ",article.find_all(attrs={'class': re.compile('^writing')})[0].string )
+        # print("작성 날짜 :",script_date)
+
+        # one_Article = {}
+        one_Article = dict()
+        one_Article["title"] = title
+        one_Article["press"] = article.find_all(attrs={'class': re.compile('^writing')})[0].string
+        one_Article["date"] = script_date
+        one_Article["article"] = article_script
+        one_Article["article_link"] = article.find('a')['href']
+        print(one_Article)
+        arr.append(one_Article)
 
 
 
 
 
+print("★★★★★★★★★★★★★★★★★크롤링 끝★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★")
+# for i in arr:
+#     print(i)
+
+
+### MongoDB에 데이터 삽입하기
+# import pymongo
+# conn = pymongo.MongoClient()
+# db = conn.bitDB
+# news = db.news
+# db.news.insert_many(arr)
 
 
 
